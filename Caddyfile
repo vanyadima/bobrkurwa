@@ -1,0 +1,14 @@
+{
+    local_certs
+}
+
+:443 {
+    tls internal {
+        on_demand
+    }
+    reverse_proxy koderline:8080
+}
+
+:80 {
+    redir https://{host}{uri} permanent
+}
