@@ -4,7 +4,7 @@ services:
     container_name: koderline_app
     restart: unless-stopped
     environment:
-      - WORKCORD_TOKEN=MySuperSecretOfficePass2026
+      - WORKCORD_TOKEN=MySuperSecretOfficePass2026 # <-- Общий пароль-инвайт на сервер
     volumes:
       - koderline_data:/app/data
     expose:
@@ -15,9 +15,9 @@ services:
     container_name: koderline_proxy
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "8088:80"
+      - "8443:443"
+      - "8443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
