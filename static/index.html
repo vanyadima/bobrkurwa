@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>KoderlineWorkSpace</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; height: 100vh; background: #1e1f22; color: #dbdee1; }
+        
+        #auth-overlay { position: fixed; inset: 0; background: #111214; z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .auth-box { background: #2b2d31; padding: 28px; border-radius: 10px; width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); border: 1px solid #3f4147; }
+        .auth-box h2 { color: #fff; margin-bottom: 18px; font-size: 18px; text-align: center; }
+        .auth-box label { display: block; font-size: 12px; text-transform: uppercase; color: #949ba4; margin-bottom: 6px; font-weight: bold; }
+        .auth-box input { width: 100%; padding: 10px 12px; margin-bottom: 14px; border-radius: 6px; border: 1px solid #1e1f22; background: #1e1f22; color: #fff; outline: none; }
+        .auth-error { color: #fa777c; font-size: 13px; margin-bottom: 12px; display: none; text-align: center; }
+
+        #admin-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1500; align-items: center; justify-content: center; }
+        .admin-content { background: #313338; width: 650px; border-radius: 10px; padding: 25px; border: 1px solid #3f4147; box-shadow: 0 10px 30px rgba(0,0,0,0.7); color: #fff; max-height: 85vh; display: flex; flex-direction: column; }
+        .admin-content h3 { margin-bottom: 15px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+        .admin-table { width: 100%; border-collapse: collapse; margin: 10px 0 20px; font-size: 13px; }
+        .admin-table th, .admin-table td { padding: 8px 10px; border-bottom: 1px solid #3f4147; text-align: left; }
+        .admin-table th { color: #949ba4; font-size: 11px; text-transform: uppercase; }
+        .add-user-form { display: flex; gap: 8px; margin-top: auto; align-items: center; background: #2b2d31; padding: 12px; border-radius: 8px; }
+        .add-user-form input { padding: 8px; border-radius: 4px; border: none; background: #1e1f22; color: #fff; outline: none; font-size: 13px; }
+
+        #sidebar { width: 260px; background: #2b2d31; display: flex; flex-direction: column; padding: 15px; border-right: 1px solid #1f2023; }
+        .logo { font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #3f4147; display: flex; align-items: center; justify-content: space-between; }
+        .logo span { color: #23a55a; }
+        .logout-btn { font-size: 11px; color: #949ba4; cursor: pointer; background: none; border: none; }
+        .logout-btn:hover { color: #fff; text-decoration: underline; }
+        .section-title { font-size: 11px; text-transform: uppercase; color: #949ba4; margin: 15px 0 6px; font-weight: bold; letter-spacing: 0.5px; }
+        .channel { padding: 8px 10px; border-radius: 5px; cursor: pointer; color: #949ba4; margin-bottom: 3px; font-weight: 500; transition: 0.15s; }
+        .channel:hover, .channel.active { background: #404249; color: #fff; }
+
+        #voice-users { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; padding-left: 6px; }
+        .voice-user { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 13px; color: #dbdee1; background: #232428; border: 1px solid transparent; }
+        .voice-dot { width: 9px; height: 9px; border-radius: 50%; background: #4e5058; flex-shrink: 0; }
+        .voice-user.speaking { border-color: #23a55a; color: #fff; background: #1e2a22; }
+        .voice-user.speaking .voice-dot { background: #23a55a; box-shadow: 0 0 8px #23a55a; }
+        .mute-badge { margin-left: auto; font-size: 12px; color: #fa777c; }
+        
+        #voice-panel { margin-top: auto; background: #232428; padding: 12px; border-radius: 8px; }
+        .btn { padding: 8px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: #fff; transition: 0.15s; font-size: 13px; }
+        .btn-green { background: #23a55a; width: 100%; margin-top: 6px; }
+        .btn-red { background: #da373c; width: 100%; margin-top: 6px; }
+        .btn-blue { background: #5865f2; width: 100%; margin-top: 6px; }
+        .btn-gray { background: #4e5058; width: 100%; margin-top: 6px; }
+        .btn-warn { background: #d97706; width: 100%; margin-top: 6px; }
+        .btn-sm { padding: 4px 8px; font-size: 12px; }
+
+        #main { flex: 1; display: flex; flex-direction: column; background: #313338; }
+        #header { height: 50px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-weight: bold; color: #fff; }
+        .hint { font-size: 12px; color: #949ba4; font-weight: normal; }
+        
+        #media-grid { display: flex; gap: 10px; padding: 10px 20px; background: #111214; flex-wrap: wrap; max-height: 45vh; overflow-y: auto; }
+        #media-grid:empty { display: none; }
+        video { height: 220px; background: #000; border-radius: 6px; border: 1px solid #23a55a; cursor: pointer; }
+
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg { line-height: 1.4; word-wrap: break-word; }
+        .msg b { color: #5865f2; margin-right: 6px; }
+        .msg.sys b { color: #23a55a; }
+        .chat-img { max-width: 420px; max-height: 320px; border-radius: 8px; margin-top: 6px; display: block; cursor: zoom-in; border: 1px solid #404249; }
+
+        #input-box { padding: 15px 20px; background: #313338; }
+        #msg-input { width: 100%; padding: 12px 15px; border-radius: 8px; border: none; background: #383a40; color: #fff; outline: none; font-size: 14px; }
+
+        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 999; align-items: center; justify-content: center; cursor: zoom-out; }
+        #lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; box-shadow: 0 0 25px rgba(0,0,0,0.8); }
+    </style>
+</head>
+<body>
+
+<div id="auth-overlay">
+    <div class="auth-box">
+        <h2><span>●</span> KoderlineWorkSpace</h2>
+        <div id="auth-err" class="auth-error">Неверный логин, пароль или токен</div>
+        <label>Никнейм</label>
+        <input id="auth-user" type="text" placeholder="Admin">
+        <label>Пароль учетной записи</label>
+        <input id="auth-pass" type="password" placeholder="Пароль пользователя">
+        <label>Пароль сервера (Инвайт)</label>
+        <input id="auth-token" type="password" placeholder="••••••••">
+        <button class="btn btn-green" onclick="submitAuth()">Войти в систему</button>
+    </div>
+</div>
+
+<div id="admin-modal">
+    <div class="admin-content">
+        <h3><span>🛠 Управление сотрудниками</span> <button class="btn btn-sm btn-red" onclick="document.getElementById('admin-modal').style.display='none'">Закрыть</button></h3>
+        <div style="overflow-y: auto; max-height: 350px;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Пользователь</th>
+                        <th>Пароль</th>
+                        <th>Роль</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-users-tbody"></tbody>
+            </table>
+        </div>
+        <div class="add-user-form">
+            <input id="new-u-name" type="text" placeholder="Логин" style="flex:1;">
+            <input id="new-u-pass" type="text" placeholder="Пароль" style="width: 120px;">
+            <label style="font-size:12px; color:#949ba4; display:flex; align-items:center; gap:4px; cursor:pointer;"><input id="new-u-admin" type="checkbox"> Админ</label>
+            <button class="btn btn-sm btn-green" onclick="addNewUser()">Создать</button>
+        </div>
+    </div>
+</div>
+
+<div id="sidebar">
+    <div class="logo">
+        <div><span>●</span> KoderlineWS</div>
+        <button class="logout-btn" onclick="logout()">Выйти</button>
+    </div>
+    
+    <button id="admin-panel-btn" class="btn btn-blue" onclick="document.getElementById('admin-modal').style.display='flex'" style="display:none; margin-bottom: 12px; font-size:12px;">🛠 Админ-панель</button>
+
+    <div class="section-title">Рабочие каналы</div>
+    <div class="channel active" onclick="switchRoom('general')"># общий-чат</div>
+    <div class="channel" onclick="switchRoom('it-support')"># ит-отдел</div>
+    <div class="channel" onclick="switchRoom('1c-dev')"># 1с-инфраструктура</div>
+    <div class="channel" onclick="switchRoom('network')"># сеть-и-серверы</div>
+
+    <div class="section-title">В голосовом канале</div>
+    <div id="voice-users">
+        <div style="font-size: 12px; color: #6d6f78; padding-left: 4px;">Никого нет</div>
+    </div>
+
+    <div id="voice-panel">
+        <div id="user-label" style="font-size: 13px; margin-bottom: 8px; color: #fff;"></div>
+        <button id="voice-btn" class="btn btn-green" onclick="toggleVoice()">Войти в голос</button>
+        <button id="mute-btn" class="btn btn-gray" onclick="toggleMute()" style="display:none;">Микрофон: Вкл (Ctrl+M)</button>
+        <button id="screen-btn" class="btn btn-blue" onclick="shareScreen()" style="display:none;">Экран (Демка)</button>
+    </div>
+</div>
+
+<div id="main">
+    <div id="header">
+        <span id="room-title"># general</span>
+        <span class="hint">Скриншот: <b>Ctrl+V</b> | Mute: <b>Ctrl+M</b></span>
+    </div>
+    <div id="media-grid"></div>
+    <div id="messages"></div>
+    <div id="input-box">
+        <input id="msg-input" type="text" placeholder="Написать сообщение или вставить скриншот (Ctrl+V)..." onkeypress="if(event.key === 'Enter') sendMsg()">
+    </div>
+</div>
+
+<div id="lightbox" onclick="this.style.display='none'">
+    <img id="lightbox-img" src="">
+</div>
+
+<script>
+    let username = localStorage.getItem("koderline_user") || "Admin";
+    let userPass = localStorage.getItem("koderline_pass") || "";
+    let serverToken = localStorage.getItem("koderline_token") || "";
+
+    document.getElementById("auth-user").value = username;
+    document.getElementById("auth-pass").value = userPass;
+    document.getElementById("auth-token").value = serverToken;
+
+    let currentRoom = "general";
+    let ws;
+    let localStream = null;
+    let isMuted = false;
+    let peers = {};
+    let audioCtx = null;
+    let vadInterval = null;
+    const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+    function escapeHTML(str) {
+        return (str || "").replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag]));
+    }
+
+    function submitAuth() {
+        const u = document.getElementById("auth-user").value.trim();
+        const p = document.getElementById("auth-pass").value.trim();
+        const t = document.getElementById("auth-token").value.trim();
+        if (!u || !t) return;
+
+        username = u;
+        userPass = p;
+        serverToken = t;
+
+        localStorage.setItem("koderline_user", username);
+        localStorage.setItem("koderline_pass", userPass);
+        localStorage.setItem("koderline_token", serverToken);
+
+        document.getElementById("auth-err").style.display = "none";
+        connectWS();
+    }
+
+    function logout() {
+        localStorage.removeItem("koderline_token");
+        localStorage.removeItem("koderline_pass");
+        location.reload();
+    }
+
+    function connectWS() {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${proto}//${location.host}/ws?token=${encodeURIComponent(serverToken)}`);
+
+        ws.onopen = () => {
+            ws.send(JSON.stringify({
+                type: "join",
+                username: username,
+                content: userPass,
+                room: currentRoom
+            }));
+        };
+
+        ws.onerror = () => {
+            document.getElementById("auth-overlay").style.display = "flex";
+            document.getElementById("auth-err").style.display = "block";
+        };
+
+        ws.onmessage = async (e) => {
+            const msg = JSON.parse(e.data);
+            const box = document.getElementById("messages");
+
+            if (msg.type === "chat") {
+                document.getElementById("auth-overlay").style.display = "none";
+                document.getElementById("user-label").innerText = "Профиль: " + username;
+
+                const div = document.createElement("div");
+                div.className = "msg" + (msg.username === "Система" ? " sys" : "");
+                const timeStr = msg.timestamp ? `<span style="font-size:11px; color:#949ba4; margin-right:6px;">[${msg.timestamp}]</span>` : "";
+                div.innerHTML = `${timeStr}<b>${escapeHTML(msg.username)}:</b> ${escapeHTML(msg.content)}`;
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+
+            } else if (msg.type === "image") {
+                const div = document.createElement("div");
+                div.className = "msg";
+                const timeStr = msg.timestamp ? `<span style="font-size:11px; color:#949ba4; margin-right:6px;">[${msg.timestamp}]</span>` : "";
+                div.innerHTML = `${timeStr}<b>${escapeHTML(msg.username)}:</b><br>`;
+                const img = document.createElement("img");
+                img.src = msg.content;
+                img.className = "chat-img";
+                img.onclick = () => { document.getElementById("lightbox-img").src = msg.content; document.getElementById("lightbox").style.display = "flex"; };
+                div.appendChild(img);
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+
+            } else if (msg.type === "admin-users") {
+                document.getElementById("admin-panel-btn").style.display = "block";
+                renderAdminTable(msg.usersList);
+
+            } else if (msg.type === "voice-list") {
+                renderVoiceList(msg.voiceUsers);
+
+            } else if (msg.type === "speaking") {
+                const el = document.getElementById("vu-" + msg.username);
+                if (el) el.classList.toggle("speaking", msg.speaking);
+
+            } else if (msg.type === "voice-join" && localStream) {
+                createOffer(msg.username);
+            } else if (msg.type === "webrtc-offer" && localStream) {
+                await handleOffer(msg);
+            } else if (msg.type === "webrtc-answer" && localStream) {
+                await peers[msg.username]?.setRemoteDescription(new RTCSessionDescription(msg.payload));
+            } else if (msg.type === "webrtc-candidate" && localStream) {
+                await peers[msg.username]?.addIceCandidate(new RTCIceCandidate(msg.payload));
+            } else if (msg.type === "voice-leave") {
+                closePeer(msg.username);
+            }
+        };
+    }
+
+    function renderAdminTable(users) {
+        const tbody = document.getElementById("admin-users-tbody");
+        tbody.innerHTML = "";
+        users.forEach(u => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><b>${escapeHTML(u.username)}</b></td>
+                <td><code>${escapeHTML(u.password)}</code></td>
+                <td>${u.isAdmin ? '<span style="color:#23a55a">Админ</span>' : 'Сотрудник'}</td>
+                <td>${u.username !== 'Admin' ? `<button class="btn btn-sm btn-red" onclick="deleteUser('${u.username}')">Удалить</button>` : '—'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function addNewUser() {
+        const name = document.getElementById("new-u-name").value.trim();
+        const pass = document.getElementById("new-u-pass").value.trim();
+        const isAdmin = document.getElementById("new-u-admin").checked;
+        if (!name || !pass) return alert("Заполни логин и пароль!");
+
+        ws.send(JSON.stringify({
+            type: "admin-add-user",
+            newUser: { username: name, password: pass, isAdmin: isAdmin }
+        }));
+        document.getElementById("new-u-name").value = "";
+        document.getElementById("new-u-pass").value = "";
+        document.getElementById("new-u-admin").checked = false;
+    }
+
+    function deleteUser(uName) {
+        if (!confirm(`Точно удалить учетку ${uName}?`)) return;
+        ws.send(JSON.stringify({ type: "admin-del-user", username: uName }));
+    }
+
+    function sendMsg() {
+        const input = document.getElementById("msg-input");
+        if (!input.value.trim()) return;
+        ws.send(JSON.stringify({ type: "chat", username: username, room: currentRoom, content: input.value }));
+        input.value = "";
+    }
+
+    window.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "m") {
+            e.preventDefault();
+            if (localStream) toggleMute();
+        }
+    });
+
+    window.addEventListener("paste", (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let item of items) {
+            if (item.type.indexOf("image") === 0) {
+                const file = item.getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        const maxDim = 1280;
+                        let w = img.width, h = img.height;
+                        if (w > maxDim || h > maxDim) {
+                            if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                            else { w = Math.round(w * maxDim / h); h = maxDim; }
+                        }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                        ws.send(JSON.stringify({ type: "image", username: username, room: currentRoom, content: canvas.toDataURL("image/jpeg", 0.82) }));
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+
+    function switchRoom(room) {
+        if (localStream) toggleVoice();
+        currentRoom = room;
+        document.getElementById("room-title").innerText = "# " + room;
+        document.getElementById("messages").innerHTML = "";
+        document.querySelectorAll(".channel").forEach(el => {
+            el.classList.toggle("active", el.getAttribute("onclick").includes(room));
+        });
+        ws.close();
+        connectWS();
+    }
+
+    function toggleMute() {
+        if (!localStream) return;
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (!audioTrack) return;
+        isMuted = !isMuted;
+        audioTrack.enabled = !isMuted;
+
+        const muteBtn = document.getElementById("mute-btn");
+        if (isMuted) {
+            muteBtn.innerText = "🔇 Замьючен (Ctrl+M)";
+            muteBtn.className = "btn btn-warn";
+        } else {
+            muteBtn.innerText = "Микрофон: Вкл (Ctrl+M)";
+            muteBtn.className = "btn btn-gray";
+        }
+        ws.send(JSON.stringify({ type: "mute", username: username, room: currentRoom, muted: isMuted }));
+    }
+
+    function startVoiceActivityDetection(stream) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(analyser);
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        let isSpeaking = false;
+
+        vadInterval = setInterval(() => {
+            if (isMuted) {
+                if (isSpeaking) {
+                    isSpeaking = false;
+                    ws.send(JSON.stringify({ type: "speaking", username: username, room: currentRoom, speaking: false }));
+                }
+                return;
+            }
+            analyser.getByteFrequencyData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) sum += data[i];
+            const speakingNow = (sum / data.length) > 12;
+
+            if (speakingNow !== isSpeaking) {
+                isSpeaking = speakingNow;
+                ws.send(JSON.stringify({ type: "speaking", username: username, room: currentRoom, speaking: isSpeaking }));
+            }
+        }, 120);
+    }
+
+    function stopVoiceActivityDetection() {
+        if (vadInterval) clearInterval(vadInterval);
+        if (audioCtx) audioCtx.close();
+        vadInterval = null; audioCtx = null;
+    }
+
+    async function toggleVoice() {
+        const btn = document.getElementById("voice-btn");
+        const muteBtn = document.getElementById("mute-btn");
+        const screenBtn = document.getElementById("screen-btn");
+
+        if (!localStream) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                isMuted = false;
+                addMediaElement("local", localStream, true);
+                startVoiceActivityDetection(localStream);
+                ws.send(JSON.stringify({ type: "voice-join", username: username, room: currentRoom }));
+                btn.innerText = "Отключиться"; btn.className = "btn btn-red";
+                muteBtn.innerText = "Микрофон: Вкл (Ctrl+M)"; muteBtn.className = "btn btn-gray";
+                muteBtn.style.display = "block"; screenBtn.style.display = "block";
+            } catch (err) { alert("Ошибка микрофона: " + err); }
+        } else {
+            stopVoiceActivityDetection();
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null; isMuted = false;
+            Object.keys(peers).forEach(closePeer);
+            document.getElementById("media-grid").innerHTML = "";
+            ws.send(JSON.stringify({ type: "voice-leave", username: username, room: currentRoom }));
+            btn.innerText = "Войти в голос"; btn.className = "btn btn-green";
+            muteBtn.style.display = "none"; screenBtn.style.display = "none";
+        }
+    }
+
+    async function shareScreen() {
+        try {
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            const videoTrack = screenStream.getVideoTracks()[0];
+            localStream.addTrack(videoTrack);
+            addMediaElement("local", screenStream, true);
+            for (let peerUser in peers) {
+                peers[peerUser].addTrack(videoTrack, localStream);
+                createOffer(peerUser);
+            }
+        } catch (e) {}
+    }
+
+    function getOrCreatePeer(remoteUser) {
+        if (peers[remoteUser]) return peers[remoteUser];
+        const pc = new RTCPeerConnection(rtcConfig);
+        peers[remoteUser] = pc;
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+        pc.onicecandidate = (e) => {
+            if (e.candidate) ws.send(JSON.stringify({ type: "webrtc-candidate", username: username, target: remoteUser, room: currentRoom, payload: e.candidate }));
+        };
+        pc.ontrack = (e) => { addMediaElement(remoteUser, e.streams[0], false); };
+        return pc;
+    }
+
+    async function createOffer(remoteUser) {
+        const pc = getOrCreatePeer(remoteUser);
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        ws.send(JSON.stringify({ type: "webrtc-offer", username: username, target: remoteUser, room: currentRoom, payload: offer }));
+    }
+
+    async function handleOffer(msg) {
+        const pc = getOrCreatePeer(msg.username);
+        await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        ws.send(JSON.stringify({ type: "webrtc-answer", username: username, target: msg.username, room: currentRoom, payload: answer }));
+    }
+
+    function addMediaElement(id, stream, muted) {
+        let el = document.getElementById("media-" + id);
+        if (!el) {
+            el = document.createElement("video");
+            el.id = "media-" + id;
+            el.autoplay = true;
+            el.playsInline = true;
+            el.onclick = () => { if (el.requestFullscreen) el.requestFullscreen(); };
+            document.getElementById("media-grid").appendChild(el);
+        }
+        el.srcObject = stream;
+        el.muted = muted;
+    }
+
+    function closePeer(remoteUser) {
+        if (peers[remoteUser]) { peers[remoteUser].close(); delete peers[remoteUser]; }
+        const el = document.getElementById("media-" + remoteUser);
+        if (el) el.remove();
+    }
+
+    if (username && serverToken) {
+        connectWS();
+    }
+</script>
+</body>
+</html>
